@@ -10,16 +10,16 @@ from torch.nn import functional as F
 # build encoder decoder blocks
 @dataclass
 class Config:
-    enc_block_size: int = 128     # covers your NL max of 79 with margin
-    dec_block_size: int = 384     # covers your FOL max of 313 with margin
+    enc_block_size: int = 128     # covers NL max of 79 with margin
+    dec_block_size: int = 384     # covers FOL max of 313 with margin
     enc_n_layers: int = 6
     dec_n_layers: int = 6
     n_heads: int = 6
-    n_embd: int = 512             # must match between encoder and decoder -- cross-attention requires it
+    n_embd: int = 512 
     dropout: float = 0.1
     bias: bool = False
     enc_vocab: int = 30522        # set to len(nl_tokenizer)
-    dec_vocab: int = 30522        # set to len(fol_tokenizer) -- includes added symbols
+    dec_vocab: int = 30522        # set to len(fol_tokenizer) 
 
 class EncoderBlock(nn.Module):
     config: Config
@@ -110,8 +110,6 @@ class DecoderBlock(nn.Module):
 
         if targets is not None:
             logits = self.lm_head(x)
-            # ignore_index=-100 is F.cross_entropy's default -- matches the
-            # collate_fn convention of setting padded label positions to -100
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-100)
         else:
             logits = self.lm_head(x[:, [-1], :])
