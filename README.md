@@ -4,7 +4,7 @@ An encoder-decoder transformer built from scratch in pure PyTorch that translate
 
 ## Overview
 
-This project explores whether a compact, from-scratch transformer can learn to map natural language sentences to their formal first-order logic representations. The architecture uses [nanoGPT](https://github.com/karpathy/nanoGPT) and "Attenion is all you need" as a reference foundation, implemented without high-level training frameworks.
+This project explores whether a compact, from-scratch transformer can learn to map natural language sentences to their formal first-order logic representations. The architecture uses [nanoGPT](https://github.com/karpathy/nanoGPT) and "Attention is all you need" as a reference foundation, implemented without high-level training frameworks.
 
 ## Approach
 
