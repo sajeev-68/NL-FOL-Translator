@@ -127,9 +127,9 @@ class FOLTokenizerPipeline:
 
 if __name__ == "__main__":
     loader = DataLoader(
-        file_path_folio="/Users/sajeev/Desktop/Transformer_stuff/data/folio_v2_train.jsonl",
-        file_path_main="/Users/sajeev/Desktop/Transformer_stuff/data/main_nl_to_fol.parquet",
-        file_path_malls="/Users/sajeev/Desktop/Transformer_stuff/data/MALLS-v0.1-train.json",
+        file_path_folio="<file_path>",
+        file_path_main="<file_path>",
+        file_path_malls="<file_path>"
     )
     df = loader.get_data()
 
