@@ -12,10 +12,7 @@ from transformer_utils import device
 from utils import DataLoader as FOLDataLoader
 from utils import FOLTokenizerPipeline
 
-
-# ---------------- Dataset ----------------
 class FOLDataset(Dataset):
-    """One row = one (NL sentence, FOL formula) pair."""
     def __init__(self, df, nl_ids_col="NL_ids", fol_ids_col="FOL_ids"):
         self.src = df[nl_ids_col].tolist()
         self.tgt = df[fol_ids_col].tolist()
@@ -31,10 +28,6 @@ class FOLDataset(Dataset):
 
 
 def make_collate_fn(src_pad_id, tgt_pad_id, enc_block_size, dec_block_size, ignore_index=-100):
-    """Pads every batch to a FIXED length (enc_block_size / dec_block_size),
-    not each batch's own max. torch.compile specializes to input shape --
-    dynamic per-batch padding means a new shape (and a slow recompile) on
-    nearly every batch, which can look identical to a permanent hang."""
     def collate(batch):
         src_seqs, tgt_seqs = zip(*batch)
 
@@ -59,8 +52,6 @@ def make_collate_fn(src_pad_id, tgt_pad_id, enc_block_size, dec_block_size, igno
         }
     return collate
 
-
-# ---------------- cosine LR with warmup ----------------
 def get_lr(step, warmup_steps, max_steps, base_lr, min_lr):
     if step < warmup_steps:
         return base_lr * (step + 1) / warmup_steps
@@ -69,9 +60,6 @@ def get_lr(step, warmup_steps, max_steps, base_lr, min_lr):
     decay_ratio = (step - warmup_steps) / max(1, (max_steps - warmup_steps))
     coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
     return min_lr + coeff * (base_lr - min_lr)
-
-
-# ---------------- nanoGPT-style param groups: no weight decay on 1D params ----------------
 def build_param_groups(*modules, weight_decay):
     decay, no_decay = [], []
     for module in modules:
@@ -88,9 +76,9 @@ def build_param_groups(*modules, weight_decay):
 def main():
     # ---- data ----
     loader = FOLDataLoader(
-        file_path_folio="/Users/sajeev/Desktop/Transformer_stuff/data/folio_v2_train.jsonl",
-        file_path_main="/Users/sajeev/Desktop/Transformer_stuff/data/main_nl_to_fol.parquet",
-        file_path_malls="/Users/sajeev/Desktop/Transformer_stuff/data/MALLS-v0.1-train.json",
+        file_path_folio="<file_path>",
+        file_path_main="<file_path>"",
+        file_path_malls="<file_path>",
     )
     df = loader.get_data()
 
@@ -99,9 +87,6 @@ def main():
     nl_tokenizer = pipeline.nl_tokenizer
     fol_tokenizer = pipeline.fol_tokenizer
 
-    # ---- drop rows that would exceed block_size (encoder/decoder forward()
-    # asserts on this rather than truncating -- better to filter now than
-    # crash mid-training on whatever batch happens to contain the outlier) ----
     ENC_BLOCK_SIZE, DEC_BLOCK_SIZE = 128, 384
     before = len(df)
     df = df[
@@ -110,7 +95,6 @@ def main():
     ].reset_index(drop=True) # pyright: ignore[reportAttributeAccessIssue]
     print(f"dropped {before - len(df)} row(s) exceeding block size ({before} -> {len(df)})")
 
-    # ---- train/val split (nothing in the pipeline did this before) ----
     df = df.sample(frac=1.0, random_state=42).reset_index(drop=True)
     n_val = int(len(df) * 0.05)
     val_df = df.iloc[:n_val].reset_index(drop=True)
@@ -129,11 +113,6 @@ def main():
     train_loader = TorchDataLoader(FOLDataset(train_df), batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     val_loader = TorchDataLoader(FOLDataset(val_df), batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
 
-    # ---- model ----
-    # n_embd=128 deliberately small: with a 30k+ BERT vocab reused for a
-    # from-scratch model, the embedding table alone dominates parameter count
-    # at larger n_embd (see the 512/256/128 comparison) -- keeping it here
-    # leaves real budget for the transformer layers given your ~2.6M-token dataset.
     config = Config(
         enc_vocab=len(nl_tokenizer),
         dec_vocab=len(fol_tokenizer),
@@ -159,7 +138,6 @@ def main():
     n_params = sum(p.numel() for p in encoder.parameters()) + sum(p.numel() for p in decoder.parameters())
     print(f"total params: {n_params:,}", flush=True)
 
-    # ---- optimizer / schedule ----
     weight_decay = 0.1
     base_lr = 3e-4
     min_lr = base_lr * 0.1
@@ -202,7 +180,6 @@ def main():
 
         train_loss = running_loss / len(train_loader)
 
-        # ---- validation ----
         encoder.eval()
         decoder.eval()
         val_loss = 0.0
